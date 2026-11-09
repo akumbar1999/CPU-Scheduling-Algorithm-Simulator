@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>CPU Scheduling Simulator</h1>
+        <p>Operating System Mini Project</p>
+    </header>
+
+    <main>
+
+        <section class="card">
+            <h2>Select Scheduling Algorithm</h2>
+
+            <select id="algorithm">
+                <option value="fcfs">First Come First Serve (FCFS)</option>
+                <option value="sjf">Shortest Job First (SJF)</option>
+                <option value="srtf">Shortest Remaining Time First (SRTF)</option>
+                <option value="priority">Priority Scheduling</option>
+                <option value="rr">Round Robin</option>
+            </select>
+
+            <div id="quantumBox" style="display:none;">
+                <label>Time Quantum:</label>
+                <input type="number" id="quantum" min="1" value="2">
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Process Details</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Process ID</th>
+                        <th>Arrival Time</th>
+                        <th>Burst Time</th>
+                        <th>Priority</th>
+                    </tr>
+                </thead>
+
+                <tbody id="processTable">
+                    <tr>
+                        <td>P1</td>
+                        <td><input type="number" value="0" min="0"></td>
+                        <td><input type="number" value="5" min="1"></td>
+                        <td><input type="number" value="2" min="1"></td>
+                    </tr>
+
+                    <tr>
+                        <td>P2</td>
+                        <td><input type="number" value="1" min="0"></td>
+                        <td><input type="number" value="3" min="1"></td>
+                        <td><input type="number" value="1" min="1"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button id="addProcess">+ Add Process</button>
+            <button id="simulate">Simulate Scheduling</button>
+        </section>
+
+        <section class="card">
+            <h2>Gantt Chart</h2>
+            <div id="ganttChart">
+                Your Gantt Chart will appear here.
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Performance Results</h2>
+
+            <div id="results">
+                <p>Average Waiting Time: --</p>
+                <p>Average Turnaround Time: --</p>
+                <p>CPU Utilization: --</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
