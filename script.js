@@ -219,7 +219,7 @@ function displayResults(data) {
 }
 
 // Simulate Button
-simulateButton.addEventListener("click", function () {
+
     // SJF Scheduling Algorithm
 function sjf(processes) {
 
@@ -305,27 +305,13 @@ function sjf(processes) {
         ) * 100
     };
 }
-
-
-// Simulate Button
 // SRTF Scheduling Algorithm
-// Simulate Button
+function srtf(processes) {
 
-
-    // Priority Scheduling (Non-Preemptive)
-// Simulate Button
-
-simulateButton.addEventListener("click", function () {
-
-   // Priority Scheduling (Non-Preemptive)
-
-// ======================================
-// PRIORITY SCHEDULING (NON-PREEMPTIVE)
-// ======================================
-
-function priorityScheduling(processes) {
-
-    let remaining = [...processes];
+    let remaining = processes.map(p => ({
+        ...p,
+        remaining: p.burst
+    }));
 
     let currentTime = 0;
     let completed = 0;
@@ -335,69 +321,73 @@ function priorityScheduling(processes) {
 
     while (completed < processes.length) {
 
+        // Find available processes
         let available = remaining.filter(
-            p => p.arrival <= currentTime
+            p => p.arrival <= currentTime && p.remaining > 0
         );
 
-        // Handle CPU idle time
+        // CPU Idle
         if (available.length === 0) {
 
-            let nextArrival = Math.min(
-                ...remaining.map(p => p.arrival)
-            );
+            if (gantt.length === 0 || gantt[gantt.length - 1].id !== "Idle") {
+                gantt.push({
+                    id: "Idle",
+                    start: currentTime,
+                    end: currentTime + 1
+                });
+            } else {
+                gantt[gantt.length - 1].end++;
+            }
 
-            gantt.push({
-                id: "Idle",
-                start: currentTime,
-                end: nextArrival
-            });
-
-            currentTime = nextArrival;
+            currentTime++;
             continue;
         }
 
-        // Select highest priority
-        // Smaller priority number = Higher priority
-
+        // Select process with shortest remaining time
         available.sort(
             (a, b) =>
-                a.priority - b.priority ||
+                a.remaining - b.remaining ||
                 a.arrival - b.arrival ||
                 a.index - b.index
         );
 
         let process = available[0];
 
-        let start = currentTime;
+        // Execute for one time unit
+        if (
+            gantt.length > 0 &&
+            gantt[gantt.length - 1].id === process.id
+        ) {
+            gantt[gantt.length - 1].end++;
+        } else {
+            gantt.push({
+                id: process.id,
+                start: currentTime,
+                end: currentTime + 1
+            });
+        }
 
-        let completion = start + process.burst;
+        process.remaining--;
+        currentTime++;
 
-        let turnaround = completion - process.arrival;
+        // Check completion
+        if (process.remaining === 0) {
 
-        let waiting = turnaround - process.burst;
+            completed++;
 
-        gantt.push({
-            id: process.id,
-            start: start,
-            end: completion
-        });
+            let completion = currentTime;
+            let turnaround = completion - process.arrival;
+            let waiting = turnaround - process.burst;
 
-        results.push({
-            id: process.id,
-            arrival: process.arrival,
-            burst: process.burst,
-            completion: completion,
-            turnaround: turnaround,
-            waiting: waiting
-        });
-
-        currentTime = completion;
-
-        remaining = remaining.filter(
-            p => p.id !== process.id
-        );
-
-        completed++;
+            results.push({
+                id: process.id,
+                arrival: process.arrival,
+                burst: process.burst,
+                completion: completion,
+                turnaround: turnaround,
+                waiting: waiting
+            });
+        }
     }
 
     let totalWaiting = results.reduce(
@@ -423,16 +413,7 @@ function priorityScheduling(processes) {
         utilization: (totalBurst / currentTime) * 100
     };
 }
-
-
-// ======================================
-// SIMULATE BUTTON
-// ======================================
-
-simulateButton.addEventListener("click", function () {
-// ======================================
-// PRIORITY SCHEDULING (NON-PREEMPTIVE)
-// ======================================
+// Priority Scheduling (Non-Preemptive)
 
 function priorityScheduling(processes) {
 
@@ -444,8 +425,12 @@ function priorityScheduling(processes) {
     let results = [];
     let gantt = [];
 
+    let totalWaiting = 0;
+    let totalTurnaround = 0;
+
     while (completed < processes.length) {
 
+        // Find processes that have arrived
         let available = remaining.filter(
             p => p.arrival <= currentTime
         );
@@ -467,9 +452,7 @@ function priorityScheduling(processes) {
             continue;
         }
 
-        // Select highest priority
-        // Smaller priority number = Higher priority
-
+        // Select highest priority (smallest number)
         available.sort(
             (a, b) =>
                 a.priority - b.priority ||
@@ -480,11 +463,9 @@ function priorityScheduling(processes) {
         let process = available[0];
 
         let start = currentTime;
-
         let completion = start + process.burst;
 
         let turnaround = completion - process.arrival;
-
         let waiting = turnaround - process.burst;
 
         gantt.push({
@@ -502,6 +483,9 @@ function priorityScheduling(processes) {
             waiting: waiting
         });
 
+        totalWaiting += waiting;
+        totalTurnaround += turnaround;
+
         currentTime = completion;
 
         remaining = remaining.filter(
@@ -510,14 +494,6 @@ function priorityScheduling(processes) {
 
         completed++;
     }
-
-    let totalWaiting = results.reduce(
-        (sum, p) => sum + p.waiting, 0
-    );
-
-    let totalTurnaround = results.reduce(
-        (sum, p) => sum + p.turnaround, 0
-    );
 
     let totalBurst = processes.reduce(
         (sum, p) => sum + p.burst, 0
@@ -534,11 +510,127 @@ function priorityScheduling(processes) {
         utilization: (totalBurst / currentTime) * 100
     };
 }
+// ==========================================
+// ROUND ROBIN SCHEDULING
+// ==========================================
+// ========================================
+// ROUND ROBIN SCHEDULING
+// ========================================
 
+function roundRobin(processes, quantum) {
 
-// ======================================
-// SIMULATE BUTTON
-// ======================================
+    let remaining = processes.map(p => ({
+        ...p,
+        remaining: Number(p.burst),
+        completion: 0
+    }));
+
+    remaining.sort((a, b) => a.arrival - b.arrival);
+
+    let time = 0;
+    let completed = 0;
+    let index = 0;
+
+    let queue = [];
+    let gantt = [];
+    let results = [];
+
+    let totalWaiting = 0;
+    let totalTurnaround = 0;
+    let totalBurst = 0;
+
+    while (completed < remaining.length) {
+
+        // Add arrived processes
+        while (
+            index < remaining.length &&
+            remaining[index].arrival <= time
+        ) {
+            queue.push(remaining[index]);
+            index++;
+        }
+
+        // CPU idle
+        if (queue.length === 0) {
+
+            let nextArrival = remaining[index].arrival;
+
+            gantt.push({
+                id: "Idle",
+                start: time,
+                end: nextArrival
+            });
+
+            time = nextArrival;
+            continue;
+        }
+
+        // Select process
+        let p = queue.shift();
+
+        let start = time;
+
+        // Execute for time quantum
+        let execution = Math.min(quantum, p.remaining);
+
+        time += execution;
+        p.remaining -= execution;
+
+        // Gantt chart
+        gantt.push({
+            id: p.id,
+            start: start,
+            end: time
+        });
+
+        // Add newly arrived processes
+        while (
+            index < remaining.length &&
+            remaining[index].arrival <= time
+        ) {
+            queue.push(remaining[index]);
+            index++;
+        }
+
+        // Check completion
+        if (p.remaining > 0) {
+            queue.push(p);
+        } else {
+
+            p.completion = time;
+
+            let turnaround = p.completion - p.arrival;
+            let waiting = turnaround - p.burst;
+
+            results.push({
+                id: p.id,
+                arrival: p.arrival,
+                burst: p.burst,
+                completion: p.completion,
+                turnaround: turnaround,
+                waiting: waiting
+            });
+
+            totalWaiting += waiting;
+            totalTurnaround += turnaround;
+            totalBurst += Number(p.burst);
+
+            completed++;
+        }
+    }
+
+    return {
+        results: results,
+        gantt: gantt,
+
+        avgWaiting: totalWaiting / processes.length,
+
+        avgTurnaround: totalTurnaround / processes.length,
+
+        utilization: (totalBurst / time) * 100
+    };
+}
+// Simulate Button
 
 simulateButton.addEventListener("click", function () {
 
@@ -553,36 +645,43 @@ simulateButton.addEventListener("click", function () {
 
         let data;
 
-        // FCFS
         if (algorithm.value === "fcfs") {
             data = fcfs(processes);
         }
 
-        // SJF
         else if (algorithm.value === "sjf") {
             data = sjf(processes);
         }
 
-        // SRTF
         else if (algorithm.value === "srtf") {
             data = srtf(processes);
         }
 
-        // Priority Scheduling
         else if (algorithm.value === "priority") {
             data = priorityScheduling(processes);
         }
 
-        // Round Robin (Coming Soon)
-        else {
-            alert("Round Robin will be implemented soon!");
-            return;
-        }
+       else if (algorithm.value === "rr") {
 
-        // Display Gantt Chart
+  const quantumElement = document.getElementById("quantum");
+
+if (!quantumElement) {
+    alert("Time Quantum input not found!");
+    return;
+}
+
+const quantum = Number(quantumElement.value);
+    
+
+    if (!Number.isInteger(quantum) || quantum <= 0) {
+        alert("Please enter a valid Time Quantum");
+        return;
+    }
+
+    data = roundRobin(processes, quantum);
+}
+
         displayGantt(data.gantt);
-
-        // Display Performance Results
         displayResults(data);
 
     }
@@ -592,4 +691,5 @@ simulateButton.addEventListener("click", function () {
     }
 
 });
-});
+
+
